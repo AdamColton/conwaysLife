@@ -1,0 +1,226 @@
+<!doctype html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">	
+  <title>Life</title>
+  <style>
+  </style>
+  <script>
+    var boardSize=40;
+    var canvasSize=480;
+    
+    var board;
+    var loop_handle;
+    var changeColor_enabled=true;
+    var pauseFlag=false;
+    
+    function createGrid(){
+      board=new Array();
+      var density=document.getElementById("density").value
+      
+      for(var i=0; i<boardSize; i++){
+        board[i]=new Array();
+        for(var j=0; j<boardSize; j++) board[i][j] = (Math.random()<density);
+      }
+      drawBoard();
+    }
+    
+    function changeColor(x,y){
+      if (!changeColor_enabled) return;
+      board[x][y]=!board[x][y];
+      drawBoard();
+    }
+    
+    function point(x,y){
+      this.x = x;
+      this.y = y;
+      return this;
+    }
+    
+    function gameLoop(){
+      if (pauseFlag){
+        pauseFlag=false;
+        return;
+      }
+      changeColor_enabled=false;
+      var newBoard=new Array()
+      var just_born = new Array()
+      var just_died = new Array()
+      
+      for(var i=0; i<boardSize; i++){
+        newBoard[i]=new Array();
+        for(var j=0; j<boardSize; j++){
+          newBoard[i][j]=getValueOf(i,j);
+          if (newBoard[i][j] != board[i][j]){
+            if (newBoard[i][j]){
+              just_born.push(new point(i,j))
+            } else {
+              just_died.push(new point(i,j))
+            }
+          }
+        }
+      }
+      
+      board=newBoard;
+      draw_update(just_born, just_died)
+      changeColor_enabled=true;
+      loop_handle=setTimeout("gameLoop()", document.getElementById("speed").value);
+    }
+    
+    function draw_update(just_born, just_died){
+      var bc=document.getElementById("boardCanvas").getContext('2d');
+      var d=canvasSize/boardSize;
+      
+      bc.fillStyle="rgb(0,170,0)";
+      bc.strokeStyle="rgb(0,0,0)";
+      bc.lineWidth=1;
+      for (i=0; i<just_born.length; i++){
+        p = just_born[i]
+        bc.fillRect(p.x*d+3,p.y*d+3,d-5,d-5);
+        bc.strokeRect(p.x*d+3,p.y*d+3,d-5,d-5);
+      }
+      
+      bc.fillStyle="rgb(255,255,255)";
+      bc.strokeStyle="rgb(255,255,255)";
+      bc.lineWidth=1;
+      for (i=0; i<just_died.length; i++){
+        p = just_died[i]
+        bc.fillRect(p.x*d+2,p.y*d+2,d-3,d-3);
+      }
+    }
+    
+    function getValueOf(x,y){
+      var sum=0;
+      sum+=getValueAt(x-1,y-1);
+      sum+=getValueAt(x,y-1);
+      sum+=getValueAt(x+1,y-1);
+      sum+=getValueAt(x-1,y);
+      sum+=getValueAt(x+1,y);
+      sum+=getValueAt(x-1,y+1);
+      sum+=getValueAt(x,y+1);
+      sum+=getValueAt(x+1,y+1);
+      if (sum==3) return true;
+      if (sum==2) return board[x][y];
+      return false;
+    }
+    
+    function getValueAt(x,y){
+      //if ( (x<0) || (y<0) || (x>=boardSize) || (y>=boardSize) ) return 0
+      if (x<0)
+        x=boardSize-1;
+      else if 
+        (x>=boardSize) x=0;
+      if (y<0)
+        y=boardSize-1;
+      else if (y>=boardSize)
+        y=0;
+      if (board[x][y]) return 1;
+      return 0;
+    }
+    
+    function clearBoard(){
+      for(var i=0; i<boardSize; i++){
+        for(var j=0; j<boardSize; j++){
+          board[i][j]=false;
+        }
+      }
+      drawBoard();
+      pauseGame();
+    }
+    
+    function pauseGame(){
+      pauseFlag=true;
+      var changeButton=document.getElementById("pausePlay");
+      changeButton.value="Resume";
+      changeButton.onclick=startGame;
+    }
+    
+    function startGame(){
+      pauseFlag=false;
+      gameLoop();
+      var changeButton=document.getElementById("pausePlay");
+      changeButton.value="Pause";
+      changeButton.onclick=pauseGame;
+    }
+    
+    function newBoard(newSize){
+      pauseGame();
+      boardSize=newSize;
+      createGrid();
+      var changeButton=document.getElementById("pausePlay").value="Start";
+    }
+    
+    function drawBoard(){
+      var bc=document.getElementById("boardCanvas").getContext('2d');
+      var d=canvasSize/boardSize;
+      
+      bc.fillStyle="rgb(255,255,255)";
+      bc.fillRect(0,0,canvasSize,canvasSize);
+      
+      bc.fillStyle="rgb(0,0,0)";
+      for (i=0; i<=boardSize; i++){
+        bc.fillRect(i*d,0,1,canvasSize);
+        bc.fillRect(0,i*d,canvasSize,1);
+      }
+      
+      bc.fillStyle="rgb(0,170,0)";
+      bc.strokeStyle="rgb(0,0,0)";
+      bc.lineWidth=1;
+      for (i=0; i<boardSize; i++){
+        for(j=0; j<boardSize; j++){
+          if (board[i][j]==true){
+            bc.fillRect(i*d+3,j*d+3,d-5,d-5);
+            bc.strokeRect(i*d+3,j*d+3,d-5,d-5);
+          }
+        }
+      }
+    }
+    
+    function canvasClick(e){
+      var myCanvas=document.getElementById("boardCanvas");
+      var x_px=e.pageX-myCanvas.offsetLeft;
+      var y_px=e.pageY-myCanvas.offsetTop;
+      var x_grid=Math.floor(x_px/(canvasSize/boardSize));
+      var y_grid=Math.floor(y_px/(canvasSize/boardSize));
+      changeColor(x_grid,y_grid);
+    }
+		</script>
+	</head><body onload="createGrid()">
+		<h1>Conway's Game of Life</h1>
+This is my implementation of John Conway's game of life. The rules are
+that any living square with two or three neighbors stays alive. Any
+non-living square with exactly three neighbors comes to life. Form a
+more detailed explanation, <a href="http://en.wikipedia.org/wiki/Conway%27s_Game_of_Life">
+		see the Wikipedia article</a>.<br>
+		<br>
+Directly below the board are the controls to Play/Pause. Clear will
+erase the entire board. You can draw patterns by clicking on squares to
+toggle their value. At the bottom of the page are a set of controls to
+make a new board with a set size and density of random life.<br>
+		<canvas id="boardCanvas" width="481" height="481" onclick="canvasClick(event);"></canvas><br>
+		<input id="pausePlay" onclick="startGame();" value="Start" type="button"><input onclick="clearBoard();" value="Clear" type="button"><br>
+		Speed <select id="speed">
+			<option value="1">Fast</option>
+			<option value="100" selected="selected">Medium</option>
+			<option value="1000">Slow</option>
+		</select>
+		<br>
+		<br>
+		New Board: <br>
+		<input onclick="newBoard(10);" value="10x10" type="button">
+		<input onclick="newBoard(20);" value="20x20" type="button">
+		<input onclick="newBoard(30);" value="30x30" type="button">
+		<input onclick="newBoard(40);" value="40x40" type="button">
+		<input onclick="newBoard(60);" value="60x60" type="button"><br>
+		Density <select id="density">
+			<option value="0">Clear</option>
+			<option value=".1">10%</option>
+			<option value=".2">20%</option>
+			<option value=".3" selected="selected">30%</option>
+			<option value=".4">40%</option>
+			<option value=".5">50%</option>
+			<option value=".6">60%</option>
+			<option value=".7">70%</option>
+			<option value=".8">80%</option>
+			<option value=".9">90%</option>
+			<option value="1">100%</option>
+		</select>
